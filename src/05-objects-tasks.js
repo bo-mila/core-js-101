@@ -20,8 +20,12 @@
  *    console.log(r.height);      // => 20
  *    console.log(r.getArea());   // => 200
  */
-function Rectangle(/* width, height */) {
-  throw new Error('Not implemented');
+function Rectangle(width, height) {
+  return {
+    width,
+    height,
+    getArea: () => width * height,
+  };
 }
 
 
@@ -35,8 +39,8 @@ function Rectangle(/* width, height */) {
  *    [1,2,3]   =>  '[1,2,3]'
  *    { width: 10, height : 20 } => '{"height":10,"width":20}'
  */
-function getJSON(/* obj */) {
-  throw new Error('Not implemented');
+function getJSON(obj) {
+  return JSON.stringify(obj);
 }
 
 
@@ -51,8 +55,8 @@ function getJSON(/* obj */) {
  *    const r = fromJSON(Circle.prototype, '{"radius":10}');
  *
  */
-function fromJSON(/* proto, json */) {
-  throw new Error('Not implemented');
+function fromJSON(proto, json) {
+  return Object.setPrototypeOf(JSON.parse(json), proto);
 }
 
 
@@ -111,32 +115,165 @@ function fromJSON(/* proto, json */) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  values: {
+    elementValue: '',
+    classValue: [],
+    idValue: '',
+    attrValue: [],
+    pseudoClassValue: [],
+    pseudoElementValue: [],
+    selector1: null,
+    selector2: null,
+    combinator: '',
+    isCombine: false,
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  setValues() {
+    this.values = {
+      elementValue: '',
+      classValue: [],
+      idValue: '',
+      attrValue: [],
+      pseudoClassValue: [],
+      pseudoElementValue: [],
+      selector1: null,
+      selector2: null,
+      combinator: '',
+      isCombine: false,
+    };
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  getValues() {
+    return {
+      elementValue: this.values.elementValue,
+      classValue: [...this.values.classValue],
+      idValue: this.values.idValue,
+      attrValue: [...this.values.attrValue],
+      pseudoClassValue: [...this.values.pseudoClassValue],
+      pseudoElementValue: [...this.values.pseudoElementValue],
+      selector1: null,
+      selector2: null,
+      combinator: '',
+      isCombine: false,
+    };
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    const builder = Object.create(cssSelectorBuilder);
+    builder.values = this.getValues();
+    if (builder.values.elementValue !== '') {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    if (builder.values.idValue !== ''
+    || builder.values.classValue.length
+    || builder.values.attrValue.length
+    || builder.values.pseudoClassValue.length
+    || builder.values.pseudoElementValue.length) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    builder.values.elementValue = value;
+    return builder;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    const builder = Object.create(cssSelectorBuilder);
+    builder.values = this.getValues();
+    if (builder.values.idValue !== '') {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    if (builder.values.classValue.length
+    || builder.values.attrValue.length
+    || builder.values.pseudoClassValue.length
+    || builder.values.pseudoElementValue.length) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    builder.values.idValue = value;
+    return builder;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  getIdValue() {
+    return this.values.idValue !== '' ? `#${this.values.idValue}` : '';
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  class(value) {
+    const builder = Object.create(cssSelectorBuilder);
+    builder.values = this.getValues();
+    if (builder.values.attrValue.length
+    || builder.values.pseudoClassValue.length
+    || builder.values.pseudoElementValue.length) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    builder.values.classValue.push(value);
+    return builder;
+  },
+
+  getClassValue() {
+    return this.values.classValue.length ? `.${this.values.classValue.join('.')}` : '';
+  },
+
+  attr(value) {
+    const builder = Object.create(cssSelectorBuilder);
+    builder.values = this.getValues();
+    if (builder.values.pseudoClassValue.length
+    || builder.values.pseudoElementValue.length) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    builder.values.attrValue.push(`[${value}]`);
+    return builder;
+  },
+
+  getAttrValue() {
+    return this.values.attrValue.length ? `${this.values.attrValue.join('')}` : '';
+  },
+
+  pseudoClass(value) {
+    const builder = Object.create(cssSelectorBuilder);
+    builder.values = this.getValues();
+    if (builder.values.pseudoElementValue.length) {
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+    builder.values.pseudoClassValue.push(value);
+    return builder;
+  },
+
+  getPseudoClassValue() {
+    return this.values.pseudoClassValue.length ? `:${this.values.pseudoClassValue.join(':')}` : '';
+  },
+
+  pseudoElement(value) {
+    const builder = Object.create(cssSelectorBuilder);
+    builder.values = this.getValues();
+    if (builder.values.pseudoElementValue.length) {
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    builder.values.pseudoElementValue.push(value);
+    return builder;
+  },
+
+  getPseudoElementValue() {
+    return this.values.pseudoElementValue.length ? `::${this.values.pseudoElementValue.join('::')}` : '';
+  },
+
+  combine(selector1, combinator, selector2) {
+    const builder = Object.create(cssSelectorBuilder);
+    builder.values = this.getValues();
+    builder.values.selector1 = selector1;
+    builder.values.selector2 = selector2;
+    builder.values.combinator = combinator;
+    builder.values.isCombine = true;
+    return builder;
+  },
+
+  stringify() {
+    if (this.values.isCombine) {
+      const sel1 = this.values.selector1.stringify();
+      const sel2 = this.values.selector2.stringify();
+      return `${sel1} ${this.values.combinator} ${sel2}`;
+    }
+    const res = `${this.values.elementValue}${this.getIdValue()}${this.getClassValue()}${this.getAttrValue()}${this.getPseudoClassValue()}${this.getPseudoElementValue()}`;
+    this.setValues();
+    if (res !== '') return res;
+    return 'div';
   },
 };
 
