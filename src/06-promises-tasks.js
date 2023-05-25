@@ -110,7 +110,7 @@ async function chainPromises(array, action) {
     });
   })
     .then((res) => res.reduce(action))
-    .catch((err) => console.log(err));
+    .catch(() => {});
   return promiseResult;
 }
 
